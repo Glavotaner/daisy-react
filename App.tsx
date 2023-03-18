@@ -1,7 +1,14 @@
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import React, {createContext, useContext, useState} from 'react';
-import {SafeAreaView, StatusBar, useColorScheme} from 'react-native';
+import {
+  Image,
+  SafeAreaView,
+  StatusBar,
+  Text,
+  useColorScheme,
+  View,
+} from 'react-native';
 import {Button, TextInput} from 'react-native-paper';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
@@ -52,14 +59,10 @@ function App(): JSX.Element {
               <Stack.Screen
                 name={Routes.Messages}
                 component={Messages}
-                options={{headerShown: false}}
+                options={{headerRight: () => <Text>Pair</Text>}}
               />
             ) : (
-              <Stack.Screen
-                name={Routes.OnBoarding}
-                component={OnBoarding}
-                options={{headerShown: false}}
-              />
+              <Stack.Screen name={Routes.OnBoarding} component={OnBoarding} />
             )}
           </Stack.Navigator>
         </SafeAreaView>
@@ -93,8 +96,13 @@ const Messages = () => {
   const Stack = createNativeStackNavigator();
   return (
     <Stack.Navigator>
-      <Stack.Screen name={MessagesRoutes.KissRequest} component={KissRequest} />
       <Stack.Screen
+        options={{headerShown: false}}
+        name={MessagesRoutes.KissRequest}
+        component={KissRequest}
+      />
+      <Stack.Screen
+        options={{headerShown: false}}
         name={MessagesRoutes.KissSelection}
         component={KissSelection}
       />
@@ -102,14 +110,24 @@ const Messages = () => {
   );
 };
 const KissRequest = ({navigation}) => (
-  <Button onPress={() => navigation.replace(MessagesRoutes.KissSelection)}>
-    Kiss request
-  </Button>
+  <>
+    <Placeholder />
+    <TextInput
+      placeholder="I request kiss..."
+      style={{marginHorizontal: 100, textAlign: 'center'}}
+    />
+    <Button onPress={() => navigation.replace(MessagesRoutes.KissSelection)}>
+      Select kiss
+    </Button>
+  </>
 );
 const KissSelection = ({navigation}) => (
-  <Button onPress={() => navigation.replace(MessagesRoutes.KissRequest)}>
-    Kiss selection
-  </Button>
+  <>
+    <Button onPress={() => navigation.replace(MessagesRoutes.KissRequest)}>
+      Request kiss
+    </Button>
+    <Placeholder />
+  </>
 );
 const Registration = () => {
   const [persistedUsername, setPersistedUsername] = useContext(UserContext);
@@ -119,12 +137,14 @@ const Registration = () => {
     setPersistedUsername(username);
   };
   return (
-    <>
+    <View style={{padding: 50}}>
+      <Placeholder />
       <TextInput
         placeholder="Username..."
         mode="outlined"
         value={username || persistedUsername}
         onChangeText={setUsername}
+        style={{marginBottom: 25}}
       />
       <Button
         disabled={!username}
@@ -133,7 +153,7 @@ const Registration = () => {
         onPress={() => onRegister()}>
         Register
       </Button>
-    </>
+    </View>
   );
 };
 const Pairing = () => {
@@ -145,11 +165,13 @@ const Pairing = () => {
   };
   return (
     <>
+      <Placeholder />
       <TextInput
         placeholder="Pair..."
         mode="outlined"
         value={pair || persistedPair}
         onChangeText={setPair}
+        style={{marginBottom: 25}}
       />
       <Button
         disabled={!pair}
@@ -163,19 +185,35 @@ const Pairing = () => {
 };
 const InitialPairing = () => {
   const [_, setIsOnboarded] = useContext(OnBoardingContext);
+  const [__, setUsername] = useContext(UserContext);
   const onPairLater = () => {
     setIsOnboarded(true);
   };
+  const onChangeUsername = () => {
+    setUsername('');
+  };
   return (
-    <>
+    <View style={{padding: 50}}>
       <Pairing />
       <Button
         mode="outlined"
-        style={{marginTop: 10}}
+        style={{marginBottom: 100, marginTop: 25}}
         onPress={() => onPairLater()}>
         Pair later
       </Button>
-    </>
+      <Button
+        mode="elevated"
+        icon="arrow-left-circle"
+        onPress={() => onChangeUsername()}>
+        Change username
+      </Button>
+    </View>
   );
 };
+const Placeholder = () => (
+  <Image
+    source={require('./assets/images/placeholder.png')}
+    style={{width: 150, height: 200, alignSelf: 'center'}}
+  />
+);
 export default App;
