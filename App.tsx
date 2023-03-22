@@ -1,11 +1,18 @@
-import {NavigationContainer} from '@react-navigation/native';
+import {NavigationContainer, useNavigation} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import {
+  PairResponseData,
+  RegistrationData,
+  RequestPairData,
+  SendOptions,
+} from 'daisy-types';
 import React, {createContext, useContext, useState} from 'react';
 import {
   Image,
+  Pressable,
   SafeAreaView,
   StatusBar,
-  Text,
+  ToastAndroid,
   useColorScheme,
   View,
 } from 'react-native';
@@ -16,11 +23,13 @@ import {Colors} from 'react-native/Libraries/NewAppScreen';
 type UserContext = State<string | undefined>;
 type PairContext = State<string | undefined>;
 type OnBoardingContext = State<boolean>;
+type KissesContext = State<boolean>;
 type State<T> = [T, React.Dispatch<React.SetStateAction<T>>];
 
 const OnBoardingContext = createContext<OnBoardingContext>([false, () => {}]);
 const UserContext = createContext<UserContext>(['', () => {}]);
 const PairContext = createContext<PairContext>(['', () => {}]);
+const KissesContext = createContext<KissesContext>([false, () => {}]);
 
 enum Routes {
   OnBoarding = 'OnBoarding',
@@ -35,6 +44,37 @@ enum OnBoardingRoutes {
 enum MessagesRoutes {
   KissRequest = 'KissRequest',
   KissSelection = 'KissSelection',
+}
+
+const url = 'localhost';
+
+const postToApi = async (url: string, data: Record<string, any>) => {
+  return true;
+  const response = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  if (response.ok) {
+    return response.json();
+  } else {
+    const error = await response.text();
+    ToastAndroid.show(error, ToastAndroid.LONG);
+  }
+};
+
+type UsersPayloads = RegistrationData | RequestPairData | PairResponseData;
+type UserEndpoints = 'register' | 'requestPair' | 'respondPair';
+
+const postToUsers = async (endpoint: UserEndpoints, data: UsersPayloads) => {
+  return postToApi(`${url}/users/${endpoint}`, data);
+};
+
+const sendMessage = async ({message, to}: SendOptions) => {
+  return postToApi(`${url}/messages/send`, {message, to});
+};
+
+interface Kiss {
+  type: string;
 }
 
 function App(): JSX.Element {
@@ -56,13 +96,13 @@ function App(): JSX.Element {
           />
           <Stack.Navigator>
             {isOnboarded ? (
-              <Stack.Screen
-                name={Routes.Messages}
-                component={Messages}
-                options={{headerRight: () => <Text>Pair</Text>}}
-              />
+              <Stack.Screen name={Routes.Messages} component={Messages} />
             ) : (
-              <Stack.Screen name={Routes.OnBoarding} component={OnBoarding} />
+              <Stack.Screen
+                name={Routes.OnBoarding}
+                component={OnBoarding}
+                options={{headerShown: false}}
+              />
             )}
           </Stack.Navigator>
         </SafeAreaView>
@@ -94,51 +134,100 @@ const OnBoarding = () => {
 };
 const Messages = () => {
   const Stack = createNativeStackNavigator();
+  const [isSelectingKiss, setIsSelectingKiss] = useState(false);
   return (
-    <Stack.Navigator>
-      <Stack.Screen
-        options={{headerShown: false}}
-        name={MessagesRoutes.KissRequest}
-        component={KissRequest}
-      />
-      <Stack.Screen
-        options={{headerShown: false}}
-        name={MessagesRoutes.KissSelection}
-        component={KissSelection}
-      />
-    </Stack.Navigator>
+    <KissesContext.Provider value={[isSelectingKiss, setIsSelectingKiss]}>
+      <Stack.Navigator>
+        <Stack.Group screenOptions={{headerRight: ChangePairButton}}>
+          {isSelectingKiss ? (
+            <Stack.Screen
+              name={MessagesRoutes.KissSelection}
+              component={KissSelection}
+              options={{headerShown: false}}
+            />
+          ) : (
+            <Stack.Screen
+              name={MessagesRoutes.KissRequest}
+              component={KissRequest}
+              options={{headerShown: false}}
+            />
+          )}
+        </Stack.Group>
+      </Stack.Navigator>
+    </KissesContext.Provider>
   );
 };
-const KissRequest = ({navigation}) => (
-  <>
-    <Placeholder />
-    <TextInput
-      placeholder="I request kiss..."
-      style={{marginHorizontal: 100, textAlign: 'center'}}
-    />
-    <Button onPress={() => navigation.replace(MessagesRoutes.KissSelection)}>
-      Select kiss
-    </Button>
-  </>
-);
-const KissSelection = ({navigation}) => (
-  <>
-    <Button onPress={() => navigation.replace(MessagesRoutes.KissRequest)}>
-      Request kiss
-    </Button>
-    <Placeholder />
-  </>
-);
+const KissRequest = () => {
+  const [request, setRequest] = useState('');
+  const [_, setIsSelectingKiss] = useContext(KissesContext);
+  const requestKiss = async () => {
+    try {
+      await sendMessage({
+        to: 'pair',
+        message: {
+          notification: {
+            title: 'I am requesting kiss',
+            body: request,
+          },
+        },
+      });
+      ToastAndroid.show('Request sent!', 1000);
+    } catch (e) {
+      console.error(e);
+      ToastAndroid.show('Oops something went wrong!', 2000);
+    }
+  };
+  return (
+    <>
+      <Pressable onPress={() => requestKiss()}>
+        <KissRequestImage />
+      </Pressable>
+
+      <TextInput
+        value={request}
+        onChangeText={setRequest}
+        placeholder="I request kiss..."
+        style={{marginHorizontal: 100, textAlign: 'center'}}
+      />
+      <Button onPress={() => setIsSelectingKiss(true)}>Select kiss</Button>
+    </>
+  );
+};
+
+const KissSelection = () => {
+  const [_, setIsSelectingKiss] = useContext(KissesContext);
+  const sendKiss = async (kiss: unknown) => {
+    try {
+      await sendMessage(kiss as SendOptions);
+      ToastAndroid.show('Kiss sent!', 1000);
+    } catch (e) {
+      console.error(e);
+      ToastAndroid.show('Oops something went wrong!', 2000);
+    }
+  };
+  const kisses: Kiss[] = [{type: 'baby kiss'}];
+  return (
+    <>
+      <Button onPress={() => setIsSelectingKiss(false)}>Request kiss</Button>
+      {kisses.map(k => (
+        <Pressable key={k.type} onPress={() => sendKiss(k)}>
+          <KissImage kissType={k.type} />
+        </Pressable>
+      ))}
+    </>
+  );
+};
 const Registration = () => {
   const [persistedUsername, setPersistedUsername] = useContext(UserContext);
   const [username, setUsername] = useState('');
+  const token = 'TODO';
   const onRegister = async () => {
-    console.log(username);
+    await postToUsers('register', {username, token});
     setPersistedUsername(username);
   };
   return (
-    <View style={{padding: 50}}>
-      <Placeholder />
+    <SetupStep>
+      <StepImage />
       <TextInput
         placeholder="Username..."
         mode="outlined"
@@ -153,19 +242,29 @@ const Registration = () => {
         onPress={() => onRegister()}>
         Register
       </Button>
-    </View>
+    </SetupStep>
   );
 };
 const Pairing = () => {
-  const [persistedPair, setPersistedPair] = useContext(PairContext);
+  const [persistedPair] = useContext(PairContext);
+  const [username] = useContext(UserContext);
   const [pair, setPair] = useState('');
-  const onPaired = () => {
-    console.log(pair);
-    setPersistedPair(pair);
+  const onPairRequested = async () => {
+    await postToUsers('requestPair', {
+      requestingUsername: username!,
+      pairUsername: pair,
+    });
+  };
+  const onPairingCodeComplete = async (code: string) => {
+    await postToUsers('respondPair', {
+      requestingUsername: pair,
+      respondingUsername: username!,
+      pairingResponse: code,
+    });
   };
   return (
     <>
-      <Placeholder />
+      <StepImage />
       <TextInput
         placeholder="Pair..."
         mode="outlined"
@@ -177,9 +276,10 @@ const Pairing = () => {
         disabled={!pair}
         mode="contained"
         icon="heart"
-        onPress={() => onPaired()}>
+        onPress={() => onPairRequested()}>
         Pair
       </Button>
+      <PairingCodeInput onCodeComplete={onPairingCodeComplete} />
     </>
   );
 };
@@ -193,7 +293,7 @@ const InitialPairing = () => {
     setUsername('');
   };
   return (
-    <View style={{padding: 50}}>
+    <SetupStep>
       <Pairing />
       <Button
         mode="outlined"
@@ -207,13 +307,67 @@ const InitialPairing = () => {
         onPress={() => onChangeUsername()}>
         Change username
       </Button>
-    </View>
+    </SetupStep>
   );
 };
-const Placeholder = () => (
+const PairingCodeInput = ({
+  onCodeComplete,
+}: {
+  onCodeComplete: (code: string) => void;
+}) => {
+  const [pairingCode, setPairingCode] = useState('');
+  const codeLength = 6;
+  const setCode = async (code: string) => {
+    setPairingCode(code);
+    if (pairingCode.length === codeLength) {
+      onCodeComplete(pairingCode);
+    }
+  };
+  return (
+    <>
+      <PairingCodeCharacter onChange={setCode} />
+      <PairingCodeCharacter onChange={setCode} />
+      <PairingCodeCharacter onChange={setCode} />
+      <PairingCodeCharacter onChange={setCode} />
+      <PairingCodeCharacter onChange={setCode} />
+      <PairingCodeCharacter onChange={setCode} />
+    </>
+  );
+};
+const PairingCodeCharacter = ({
+  onChange,
+}: {
+  onChange: (code: string) => void;
+}) => {
+  return <TextInput onChangeText={onChange} />;
+};
+const ChangePairButton = () => {
+  const nav = useNavigation() as any;
+  return (
+    <>
+      <Button onPress={() => nav.push('SetPair')}>Pair</Button>
+    </>
+  );
+};
+const SetupStep = ({children}: {children: JSX.Element[]}) => {
+  return <View style={{padding: 50}}>{children}</View>;
+};
+const StepImage = ({stepImage}: {stepImage?: string} = {}) => (
+  <Image
+    source={require(`./assets/images/placeholder.png`)}
+    style={{width: 150, height: 200, alignSelf: 'center'}}
+  />
+);
+const KissRequestImage = () => (
   <Image
     source={require('./assets/images/placeholder.png')}
-    style={{width: 150, height: 200, alignSelf: 'center'}}
+    style={{width: 500, height: 600, alignSelf: 'center'}}
+  />
+);
+const KissImage = ({kissType}: {kissType: string}) => (
+  <Image
+    source={require(`./assets/images/placeholder.png`)}
+    style={{width: 250, height: 300, alignSelf: 'center'}}
   />
 );
 export default App;
