@@ -276,6 +276,7 @@ const Pairing = () => {
         disabled={!pair}
         mode="contained"
         icon="heart"
+        style={{marginBottom: 25}}
         onPress={() => onPairRequested()}>
         Pair
       </Button>
@@ -323,15 +324,21 @@ const PairingCodeInput = ({
       onCodeComplete(pairingCode);
     }
   };
+
   return (
-    <>
+    <View
+      style={{
+        marginHorizontal: 'auto',
+        flexDirection: 'row',
+        flexWrap: 'nowrap',
+      }}>
       <PairingCodeCharacter onChange={setCode} />
       <PairingCodeCharacter onChange={setCode} />
       <PairingCodeCharacter onChange={setCode} />
       <PairingCodeCharacter onChange={setCode} />
       <PairingCodeCharacter onChange={setCode} />
       <PairingCodeCharacter onChange={setCode} />
-    </>
+    </View>
   );
 };
 const PairingCodeCharacter = ({
@@ -339,7 +346,12 @@ const PairingCodeCharacter = ({
 }: {
   onChange: (code: string) => void;
 }) => {
-  return <TextInput onChangeText={onChange} />;
+  const style = {
+    flex: 1,
+    width: 50,
+    height: 50,
+  };
+  return <TextInput style={style} onChangeText={onChange} />;
 };
 const ChangePairButton = () => {
   const nav = useNavigation() as any;
