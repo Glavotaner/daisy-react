@@ -6,9 +6,14 @@ import {
   RequestPairData,
   SendOptions,
 } from 'daisy-types';
-import React, {createContext, useContext, useEffect, useState} from 'react';
+import React, {
+  createContext,
+  memo,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 import {
-  Alert,
   Image,
   Pressable,
   SafeAreaView,
@@ -88,36 +93,40 @@ function App(): JSX.Element {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
 
-  const Stack = createNativeStackNavigator();
-  const [isOnboarded, setIsOnboarded] = useState(false);
   return (
     <NavigationContainer>
-      <OnBoardingContext.Provider value={[isOnboarded, setIsOnboarded]}>
-        <SafeAreaView style={{...backgroundStyle, flex: 1}}>
-          <StatusBar
-            barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-            backgroundColor={backgroundStyle.backgroundColor}
-          />
-          <Stack.Navigator>
-            {isOnboarded ? (
-              <Stack.Screen name={Routes.Messages} component={Messages} />
-            ) : (
-              <Stack.Screen
-                name={Routes.OnBoarding}
-                component={OnBoarding}
-                options={{headerShown: false}}
-              />
-            )}
-          </Stack.Navigator>
-        </SafeAreaView>
-      </OnBoardingContext.Provider>
+      <SafeAreaView style={{...backgroundStyle, flex: 1}}>
+        <StatusBar
+          barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+          backgroundColor={backgroundStyle.backgroundColor}
+        />
+        <Navigator />
+      </SafeAreaView>
     </NavigationContainer>
   );
 }
-
-const OnBoarding = () => {
+const Navigator = () => {
   const Stack = createNativeStackNavigator();
+  const [isOnboarded, setIsOnboarded] = useState(false);
+  return (
+    <OnBoardingContext.Provider value={[isOnboarded, setIsOnboarded]}>
+      <Stack.Navigator>
+        {isOnboarded ? (
+          <Stack.Screen name={Routes.Messages} component={Messages} />
+        ) : (
+          <Stack.Screen
+            name={Routes.OnBoarding}
+            component={OnBoarding}
+            options={{headerShown: false}}
+          />
+        )}
+      </Stack.Navigator>
+    </OnBoardingContext.Provider>
+  );
+};
+const OnBoarding = () => {
   const [username, setUsername] = useState<string | undefined>('');
+  const Stack = createNativeStackNavigator();
   return (
     <UserContext.Provider value={[username, setUsername]}>
       <Stack.Navigator>
