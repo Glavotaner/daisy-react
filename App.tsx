@@ -1,4 +1,4 @@
-import {NavigationContainer, useNavigation} from '@react-navigation/native';
+import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {
   PairResponseData,
@@ -6,12 +6,15 @@ import {
   RequestPairData,
   SendOptions,
 } from 'daisy-types';
-import React, {createContext, useContext, useState} from 'react';
+import React, {createContext, useContext, useEffect, useState} from 'react';
 import {
+  Alert,
   Image,
   Pressable,
   SafeAreaView,
   StatusBar,
+  Text,
+  TextInput as Input,
   ToastAndroid,
   useColorScheme,
   View,
@@ -48,9 +51,10 @@ enum MessagesRoutes {
 
 const url = 'localhost';
 
-const postToApi = async (url: string, data: Record<string, any>) => {
-  return true;
-  const response = await fetch(url, {
+const postToApi = (url: string, data: Record<string, any>) => {
+  ToastAndroid.show('err', ToastAndroid.LONG);
+  return;
+  /* const response = await fetch(url, {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -59,7 +63,7 @@ const postToApi = async (url: string, data: Record<string, any>) => {
   } else {
     const error = await response.text();
     ToastAndroid.show(error, ToastAndroid.LONG);
-  }
+  } */
 };
 
 type UsersPayloads = RegistrationData | RequestPairData | PairResponseData;
@@ -138,7 +142,7 @@ const Messages = () => {
   return (
     <KissesContext.Provider value={[isSelectingKiss, setIsSelectingKiss]}>
       <Stack.Navigator>
-        <Stack.Group screenOptions={{headerRight: ChangePairButton}}>
+        <Stack.Group>
           {isSelectingKiss ? (
             <Stack.Screen
               name={MessagesRoutes.KissSelection}
@@ -249,11 +253,13 @@ const Pairing = () => {
   const [persistedPair] = useContext(PairContext);
   const [username] = useContext(UserContext);
   const [pair, setPair] = useState('');
+  const [hasRequestedPair, setHasRequestedPair] = useState(false);
   const onPairRequested = async () => {
     await postToUsers('requestPair', {
       requestingUsername: username!,
       pairUsername: pair,
     });
+    setHasRequestedPair(true);
   };
   const onPairingCodeComplete = async (code: string) => {
     await postToUsers('respondPair', {
@@ -280,7 +286,9 @@ const Pairing = () => {
         onPress={() => onPairRequested()}>
         Pair
       </Button>
-      <PairingCodeInput onCodeComplete={onPairingCodeComplete} />
+      {hasRequestedPair && (
+        <PairingCodeInput onCodeComplete={onPairingCodeComplete} />
+      )}
     </>
   );
 };
@@ -298,7 +306,7 @@ const InitialPairing = () => {
       <Pairing />
       <Button
         mode="outlined"
-        style={{marginBottom: 100, marginTop: 25}}
+        style={{marginVertical: 50}}
         onPress={() => onPairLater()}>
         Pair later
       </Button>
@@ -316,49 +324,97 @@ const PairingCodeInput = ({
 }: {
   onCodeComplete: (code: string) => void;
 }) => {
-  const [pairingCode, setPairingCode] = useState('');
+  const [pairingCode, setPairingCode] = useState<string[]>([
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+  ]);
+  const [characterIndex, setCharacterIndex] = useState(0);
   const codeLength = 6;
-  const setCode = async (code: string) => {
+  const setCode = (code: string[], index: number) => {
     setPairingCode(code);
-    if (pairingCode.length === codeLength) {
-      onCodeComplete(pairingCode);
+    if (code.filter(c => c).length === codeLength) {
+      onCodeComplete(code.join(''));
+    } else {
+      setCharacterIndex(index + 1);
     }
   };
-
+  const clearCharacter = (index: number) => {
+    setPairingCode(pairingCode.map((c, i) => (i === index ? '' : c)));
+    setCharacterIndex(index - 1);
+  };
   return (
-    <View
-      style={{
-        marginHorizontal: 'auto',
-        flexDirection: 'row',
-        flexWrap: 'nowrap',
-      }}>
-      <PairingCodeCharacter onChange={setCode} />
-      <PairingCodeCharacter onChange={setCode} />
-      <PairingCodeCharacter onChange={setCode} />
-      <PairingCodeCharacter onChange={setCode} />
-      <PairingCodeCharacter onChange={setCode} />
-      <PairingCodeCharacter onChange={setCode} />
-    </View>
+    <>
+      <Text style={{textAlign: 'center', paddingBottom: 10}}>Pairing code</Text>
+      <View
+        style={{
+          marginHorizontal: 'auto',
+          flexDirection: 'row',
+          flexWrap: 'nowrap',
+        }}>
+        {[0, 1, 2, 3, 4, 5].map(index => {
+          return (
+            <Character
+              key={index}
+              characterIndex={characterIndex}
+              index={index}
+              onChange={code =>
+                setCode(
+                  pairingCode.map((c, i) => (i === index ? code : c)),
+                  index,
+                )
+              }
+              onClear={() => clearCharacter(index)}
+              onFocus={() => setCharacterIndex(index)}
+            />
+          );
+        })}
+      </View>
+    </>
   );
 };
-const PairingCodeCharacter = ({
+const Character = ({
+  characterIndex,
+  index,
   onChange,
+  onClear,
+  onFocus,
 }: {
-  onChange: (code: string) => void;
+  characterIndex: number;
+  index: number;
+  onChange: (code: string) => any;
+  onClear: () => any;
+  onFocus: () => any;
 }) => {
+  let textInput: Input;
   const style = {
     flex: 1,
     width: 50,
     height: 50,
   };
-  return <TextInput style={style} onChangeText={onChange} />;
-};
-const ChangePairButton = () => {
-  const nav = useNavigation() as any;
+  useEffect(() => {
+    if (characterIndex === index) {
+      textInput.focus();
+      textInput.clear();
+    }
+  }, [characterIndex]);
   return (
-    <>
-      <Button onPress={() => nav.push('SetPair')}>Pair</Button>
-    </>
+    <TextInput
+      ref={(input: Input) => (textInput = input)}
+      style={{...style, textAlign: 'center', marginHorizontal: 1}}
+      onFocus={() => onFocus()}
+      onChangeText={code => {
+        if (code) {
+          onChange(code);
+        } else {
+          onClear();
+        }
+      }}
+      mode="outlined"
+    />
   );
 };
 const SetupStep = ({children}: {children: JSX.Element[]}) => {
