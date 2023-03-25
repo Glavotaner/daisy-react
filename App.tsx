@@ -11,9 +11,11 @@ import React, {
   memo,
   useContext,
   useEffect,
+  useReducer,
   useState,
 } from 'react';
 import {
+  ActivityIndicator,
   Image,
   Pressable,
   SafeAreaView,
@@ -38,6 +40,17 @@ const OnBoardingContext = createContext<OnBoardingContext>([false, () => {}]);
 const UserContext = createContext<UserContext>(['', () => {}]);
 const PairContext = createContext<PairContext>(['', () => {}]);
 const KissesContext = createContext<KissesContext>([false, () => {}]);
+
+type PairingState = {
+  pairingCode: string[];
+  currentCharacterIndex: number;
+};
+
+type PairingReducerData = {
+  type: 'setCode' | 'clearCode' | 'focusCode';
+  characterIndex: number;
+  code?: string;
+};
 
 enum Routes {
   OnBoarding = 'OnBoarding',
@@ -75,6 +88,7 @@ type UsersPayloads = RegistrationData | RequestPairData | PairResponseData;
 type UserEndpoints = 'register' | 'requestPair' | 'respondPair';
 
 const postToUsers = async (endpoint: UserEndpoints, data: UsersPayloads) => {
+  await new Promise<void>(r => setTimeout(r, 2000));
   return postToApi(`${url}/users/${endpoint}`, data);
 };
 
@@ -233,10 +247,16 @@ const KissSelection = () => {
 const Registration = () => {
   const [persistedUsername, setPersistedUsername] = useContext(UserContext);
   const [username, setUsername] = useState('');
+  const [hasSentRegistration, setHasSentRegistration] = useState(false);
   const token = 'TODO';
   const onRegister = async () => {
-    await postToUsers('register', {username, token});
-    setPersistedUsername(username);
+    setHasSentRegistration(true);
+    try {
+      await postToUsers('register', {username, token});
+      setPersistedUsername(username);
+    } finally {
+      setHasSentRegistration(false);
+    }
   };
   return (
     <SetupStep>
@@ -248,34 +268,50 @@ const Registration = () => {
         onChangeText={setUsername}
         style={{marginBottom: 25}}
       />
-      <Button
-        disabled={!username}
-        mode="contained"
-        icon="account"
-        onPress={() => onRegister()}>
-        Register
-      </Button>
+      <>
+        {hasSentRegistration && <Loading message="Registering..." />}
+        {!hasSentRegistration && (
+          <Button
+            disabled={!username}
+            mode="contained"
+            icon="account"
+            onPress={() => onRegister()}>
+            Register
+          </Button>
+        )}
+      </>
     </SetupStep>
   );
 };
 const Pairing = () => {
-  const [persistedPair] = useContext(PairContext);
+  const [persistedPair, setPersistedPair] = useContext(PairContext);
   const [username] = useContext(UserContext);
   const [pair, setPair] = useState('');
   const [hasRequestedPair, setHasRequestedPair] = useState(false);
+  const [hasSentCode, setHasSentCode] = useState(false);
   const onPairRequested = async () => {
-    await postToUsers('requestPair', {
-      requestingUsername: username!,
-      pairUsername: pair,
-    });
     setHasRequestedPair(true);
+    try {
+      await postToUsers('requestPair', {
+        requestingUsername: username!,
+        pairUsername: pair,
+      });
+      setPersistedPair(pair);
+    } finally {
+      setHasRequestedPair(false);
+    }
   };
   const onPairingCodeComplete = async (code: string) => {
-    await postToUsers('respondPair', {
-      requestingUsername: pair,
-      respondingUsername: username!,
-      pairingResponse: code,
-    });
+    setHasSentCode(true);
+    try {
+      await postToUsers('respondPair', {
+        requestingUsername: pair,
+        respondingUsername: username!,
+        pairingResponse: code,
+      });
+    } finally {
+      setHasSentCode(false);
+    }
   };
   return (
     <>
@@ -287,17 +323,19 @@ const Pairing = () => {
         onChangeText={setPair}
         style={{marginBottom: 25}}
       />
-      <Button
-        disabled={!pair}
-        mode="contained"
-        icon="heart"
-        style={{marginBottom: 25}}
-        onPress={() => onPairRequested()}>
-        Pair
-      </Button>
-      {hasRequestedPair && (
-        <PairingCodeInput onCodeComplete={onPairingCodeComplete} />
+      {hasRequestedPair && <Loading message="Requesting pair..." />}
+      {!hasRequestedPair && (
+        <Button
+          disabled={!pair}
+          mode="contained"
+          icon="heart"
+          style={{marginBottom: 25}}
+          onPress={() => onPairRequested()}>
+          Pair
+        </Button>
       )}
+      <PairingCodeInput onCodeComplete={onPairingCodeComplete} />
+      {hasSentCode && <Loading message="Pairing..." />}
     </>
   );
 };
@@ -333,27 +371,40 @@ const PairingCodeInput = ({
 }: {
   onCodeComplete: (code: string) => void;
 }) => {
-  const [pairingCode, setPairingCode] = useState<string[]>([
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-  ]);
-  const [characterIndex, setCharacterIndex] = useState(0);
-  const codeLength = 6;
-  const setCode = (code: string[], index: number) => {
-    setPairingCode(code);
-    if (code.filter(c => c).length === codeLength) {
-      onCodeComplete(code.join(''));
-    } else {
-      setCharacterIndex(index + 1);
+  const reducer = (state: PairingState, action: PairingReducerData) => {
+    switch (action.type) {
+      case 'setCode':
+        return {
+          pairingCode: state.pairingCode.map((c, i) =>
+            i === action.characterIndex ? action.code! : c,
+          ),
+          currentCharacterIndex: action.characterIndex + 1,
+        };
+      case 'clearCode':
+        return {
+          pairingCode: state.pairingCode.map((c, i) =>
+            i === action.characterIndex ? '' : c,
+          ),
+          currentCharacterIndex: action.characterIndex - 1,
+        };
+      case 'focusCode':
+        return {
+          ...state,
+          currentCharacterIndex: action.characterIndex,
+        };
     }
   };
-  const clearCharacter = (index: number) => {
-    setPairingCode(pairingCode.map((c, i) => (i === index ? '' : c)));
-    setCharacterIndex(index - 1);
+  const [{pairingCode, currentCharacterIndex}, dispatch] = useReducer(reducer, {
+    pairingCode: ['', '', '', '', '', ''],
+    currentCharacterIndex: 0,
+  });
+  const setCode = (code: string, characterIndex: number) => {
+    const filledCodes = pairingCode.filter(c => c);
+    if (filledCodes.length + 1 === 6) {
+      onCodeComplete(pairingCode.join(''));
+    } else {
+      dispatch({type: 'setCode', code, characterIndex});
+    }
   };
   return (
     <>
@@ -368,16 +419,15 @@ const PairingCodeInput = ({
           return (
             <Character
               key={index}
-              characterIndex={characterIndex}
+              characterIndex={currentCharacterIndex}
               index={index}
-              onChange={code =>
-                setCode(
-                  pairingCode.map((c, i) => (i === index ? code : c)),
-                  index,
-                )
+              onChange={code => setCode(code, index)}
+              onClear={() =>
+                dispatch({type: 'clearCode', characterIndex: index})
               }
-              onClear={() => clearCharacter(index)}
-              onFocus={() => setCharacterIndex(index)}
+              onFocus={() =>
+                dispatch({type: 'focusCode', characterIndex: index})
+              }
             />
           );
         })}
@@ -412,14 +462,18 @@ const Character = ({
   }, [characterIndex]);
   return (
     <TextInput
+      inputMode="numeric"
+      onKeyPress={keyPress => {
+        if (keyPress.nativeEvent.key === 'Backspace') {
+          onClear();
+        }
+      }}
       ref={(input: Input) => (textInput = input)}
       style={{...style, textAlign: 'center', marginHorizontal: 1}}
       onFocus={() => onFocus()}
       onChangeText={code => {
         if (code) {
           onChange(code);
-        } else {
-          onClear();
         }
       }}
       mode="outlined"
@@ -447,4 +501,11 @@ const KissImage = ({kissType}: {kissType: string}) => (
     style={{width: 250, height: 300, alignSelf: 'center'}}
   />
 );
+const Loading = ({message}: {message: string}) => {
+  return (
+    <Text style={{textAlignVertical: 'center', textAlign: 'center'}}>
+      {message} <ActivityIndicator />
+    </Text>
+  );
+};
 export default App;
