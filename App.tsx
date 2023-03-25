@@ -8,7 +8,6 @@ import {
 } from 'daisy-types';
 import React, {
   createContext,
-  memo,
   useContext,
   useEffect,
   useReducer,
