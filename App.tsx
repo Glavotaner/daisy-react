@@ -16,6 +16,7 @@ import React, {
 import {
   ActivityIndicator,
   Image,
+  ImageSourcePropType,
   Pressable,
   SafeAreaView,
   StatusBar,
@@ -28,6 +29,11 @@ import {
 import {Button, TextInput} from 'react-native-paper';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
+
+export const pairingImage = require('./assets/images/step_pairing.png');
+export const reqistrationImage = require('./assets/images/step_registration.png');
+export const kissRequest = require('./assets/images/request.png');
+export const bossBabyKiss = require('./assets/images/boss-baby.png');
 
 type UserContext = State<string | undefined>;
 type PairContext = State<string | undefined>;
@@ -259,7 +265,7 @@ const Registration = () => {
   };
   return (
     <SetupStep>
-      <StepImage />
+      <StepImage stepImage={reqistrationImage} />
       <TextInput
         placeholder="Username..."
         mode="outlined"
@@ -314,7 +320,7 @@ const Pairing = () => {
   };
   return (
     <>
-      <StepImage />
+      <StepImage stepImage={pairingImage} />
       <TextInput
         placeholder="Pair..."
         mode="outlined"
@@ -482,21 +488,21 @@ const Character = ({
 const SetupStep = ({children}: {children: JSX.Element[]}) => {
   return <View style={{padding: 50}}>{children}</View>;
 };
-const StepImage = ({stepImage}: {stepImage?: string} = {}) => (
+const StepImage = ({stepImage}: {stepImage: ImageSourcePropType}) => (
   <Image
-    source={require(`./assets/images/placeholder.png`)}
-    style={{width: 150, height: 200, alignSelf: 'center'}}
+    source={stepImage}
+    style={{width: 200, height: 200, alignSelf: 'center'}}
   />
 );
 const KissRequestImage = () => (
   <Image
-    source={require('./assets/images/placeholder.png')}
+    source={kissRequest}
     style={{width: 500, height: 600, alignSelf: 'center'}}
   />
 );
 const KissImage = ({kissType}: {kissType: string}) => (
   <Image
-    source={require(`./assets/images/placeholder.png`)}
+    source={bossBabyKiss}
     style={{width: 250, height: 300, alignSelf: 'center'}}
   />
 );
