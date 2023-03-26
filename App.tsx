@@ -81,16 +81,6 @@ const apiUrl = process.env.API_URL;
 const postToApi = (url: string, data: Record<string, any>) => {
   ToastAndroid.show('err', ToastAndroid.LONG);
   return;
-  /* const response = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-  if (response.ok) {
-    return response.json();
-  } else {
-    const error = await response.text();
-    ToastAndroid.show(error, ToastAndroid.LONG);
-  } */
 };
 
 type UsersPayloads = RegistrationData | RequestPairData | PairResponseData;
@@ -263,15 +253,15 @@ const KissSelection = () => {
 const Registration = () => {
   const [persistedUsername, setPersistedUsername] = useContext(UserContext);
   const [username, setUsername] = useState('');
-  const [hasSentRegistration, setHasSentRegistration] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
   const token = 'TODO';
   const onRegister = async () => {
-    setHasSentRegistration(true);
+    setIsRegistering(true);
     try {
       await postToUsers('register', {username, token});
       setPersistedUsername(username);
     } finally {
-      setHasSentRegistration(false);
+      setIsRegistering(false);
     }
   };
   return (
@@ -285,8 +275,8 @@ const Registration = () => {
         style={{marginBottom: 25}}
       />
       <>
-        {hasSentRegistration && <Loading message="Registering..." />}
-        {!hasSentRegistration && (
+        {isRegistering && <Loading message="Registering..." />}
+        {!isRegistering && (
           <Button
             disabled={!username}
             mode="contained"
@@ -303,10 +293,10 @@ const Pairing = () => {
   const [persistedPair, setPersistedPair] = useContext(PairContext);
   const [username] = useContext(UserContext);
   const [pair, setPair] = useState('');
-  const [hasRequestedPair, setHasRequestedPair] = useState(false);
-  const [hasSentCode, setHasSentCode] = useState(false);
+  const [isRequestingPair, setIsRequestingPair] = useState(false);
+  const [isValidatingPairingCode, setIsValidatingPairingCode] = useState(false);
   const onPairRequested = async () => {
-    setHasRequestedPair(true);
+    setIsRequestingPair(true);
     try {
       await postToUsers('requestPair', {
         requestingUsername: username!,
@@ -314,11 +304,11 @@ const Pairing = () => {
       });
       setPersistedPair(pair);
     } finally {
-      setHasRequestedPair(false);
+      setIsRequestingPair(false);
     }
   };
   const onPairingCodeComplete = async (code: string) => {
-    setHasSentCode(true);
+    setIsValidatingPairingCode(true);
     try {
       await postToUsers('respondPair', {
         requestingUsername: pair,
@@ -326,7 +316,7 @@ const Pairing = () => {
         pairingResponse: code,
       });
     } finally {
-      setHasSentCode(false);
+      setIsValidatingPairingCode(false);
     }
   };
   return (
@@ -339,8 +329,8 @@ const Pairing = () => {
         onChangeText={setPair}
         style={{marginBottom: 25}}
       />
-      {hasRequestedPair && <Loading message="Requesting pair..." />}
-      {!hasRequestedPair && (
+      {isRequestingPair && <Loading message="Requesting pair..." />}
+      {!isRequestingPair && (
         <Button
           disabled={!pair}
           mode="contained"
@@ -351,7 +341,7 @@ const Pairing = () => {
         </Button>
       )}
       <PairingCodeInput onCodeComplete={onPairingCodeComplete} />
-      {hasSentCode && <Loading message="Pairing..." />}
+      {isValidatingPairingCode && <Loading message="Pairing..." />}
     </>
   );
 };
