@@ -17,6 +17,8 @@
     "@react-native-firebase/messaging": "^17.3.2",
     "@react-navigation/native": "^6.1.6",
     "@react-navigation/native-stack": "^6.9.12",
+    "daisy-types": "Glavotaner/daisy-api-types",
+    "dotenv": "^16.0.3",
     "fetch": "^1.1.0",
     "react": "18.2.0",
     "react-native": "0.71.3",
@@ -24,7 +26,6 @@
     "react-native-safe-area-context": "^4.5.0",
     "react-native-screens": "^3.20.0",
     "react-native-vector-icons": "^9.2.0",
-    "daisy-types": "Glavotaner/daisy-api-types",
     "rxjs": "^7.8.0"
   },
   "devDependencies": {

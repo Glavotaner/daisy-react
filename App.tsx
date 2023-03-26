@@ -28,6 +28,8 @@ import {
 } from 'react-native';
 import {Button, TextInput} from 'react-native-paper';
 import messaging from '@react-native-firebase/messaging';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -74,7 +76,7 @@ enum MessagesRoutes {
   KissSelection = 'KissSelection',
 }
 
-const url = 'localhost';
+const apiUrl = process.env.API_URL;
 
 const postToApi = (url: string, data: Record<string, any>) => {
   ToastAndroid.show('err', ToastAndroid.LONG);
@@ -96,11 +98,11 @@ type UserEndpoints = 'register' | 'requestPair' | 'respondPair';
 
 const postToUsers = async (endpoint: UserEndpoints, data: UsersPayloads) => {
   await new Promise<void>(r => setTimeout(r, 2000));
-  return postToApi(`${url}/users/${endpoint}`, data);
+  return postToApi(`/users/${endpoint}`, data);
 };
 
 const sendMessage = async ({message, to}: SendOptions) => {
-  return postToApi(`${url}/messages/send`, {message, to});
+  return postToApi(`/messages/send`, {message, to});
 };
 
 interface Kiss {
