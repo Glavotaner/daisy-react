@@ -34,6 +34,11 @@ dotenv.config();
 import {Colors} from 'react-native/Libraries/NewAppScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// TODO arrange files
+// TODO get Token
+// TODO subscribe to messages
+// TODO error logging
+
 export const pairingImage = require('./assets/images/step_pairing.png');
 export const reqistrationImage = require('./assets/images/step_registration.png');
 export const kissRequest = require('./assets/images/request.png');
@@ -45,6 +50,7 @@ type OnBoardingContext = State<boolean>;
 type KissesContext = State<boolean>;
 type State<T> = [T, React.Dispatch<React.SetStateAction<T>>];
 
+// TODO initial null
 const OnBoardingContext = createContext<OnBoardingContext>([false, () => {}]);
 const UserContext = createContext<UserContext>(['', () => {}]);
 const PairContext = createContext<PairContext>(['', () => {}]);
@@ -100,6 +106,7 @@ interface Kiss {
 }
 
 function App(): JSX.Element {
+  // TODO check user
   const isDarkMode = useColorScheme() === 'dark';
 
   const backgroundStyle = {
@@ -195,6 +202,7 @@ const KissRequest = () => {
   const [_, setIsSelectingKiss] = useContext(KissesContext);
   const requestKiss = async () => {
     try {
+      // TODO payload
       await sendMessage({
         to: 'pair',
         message: {
@@ -210,12 +218,12 @@ const KissRequest = () => {
       ToastAndroid.show('Oops something went wrong!', 2000);
     }
   };
+  // OPTIMIZE separate button
   return (
     <>
       <Pressable onPress={() => requestKiss()}>
         <KissRequestImage />
       </Pressable>
-
       <TextInput
         value={request}
         onChangeText={setRequest}
@@ -231,6 +239,7 @@ const KissSelection = () => {
   const [_, setIsSelectingKiss] = useContext(KissesContext);
   const sendKiss = async (kiss: unknown) => {
     try {
+      // TODO payload
       await sendMessage(kiss as SendOptions);
       ToastAndroid.show('Kiss sent!', 1000);
     } catch (e) {
@@ -264,6 +273,7 @@ const Registration = () => {
       setIsRegistering(false);
     }
   };
+  // OPTIMIZE separate registration button
   return (
     <SetupStep>
       <StepImage stepImage={reqistrationImage} />
@@ -319,6 +329,7 @@ const Pairing = () => {
       setIsValidatingPairingCode(false);
     }
   };
+  // OPTIMIZE separate components
   return (
     <>
       <StepImage stepImage={pairingImage} />
@@ -377,6 +388,7 @@ const PairingCodeInput = ({
 }: {
   onCodeComplete: (code: string) => void;
 }) => {
+  // TODO move reducer
   const reducer = (state: PairingState, action: PairingReducerData) => {
     switch (action.type) {
       case 'setCode':
