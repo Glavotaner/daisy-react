@@ -27,8 +27,10 @@ import {
   View,
 } from 'react-native';
 import {Button, TextInput} from 'react-native-paper';
+import messaging from '@react-native-firebase/messaging';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const pairingImage = require('./assets/images/step_pairing.png');
 export const reqistrationImage = require('./assets/images/step_registration.png');
@@ -111,6 +113,13 @@ function App(): JSX.Element {
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
+
+  useEffect(() => {
+    messaging()
+      .getToken()
+      .then(token => AsyncStorage.setItem('token', token));
+    // TODO state, persist in API
+  }, []);
 
   return (
     <NavigationContainer>
