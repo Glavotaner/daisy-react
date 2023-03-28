@@ -29,8 +29,6 @@ import {
 import {Button, TextInput} from 'react-native-paper';
 import messaging from '@react-native-firebase/messaging';
 import * as dotenv from 'dotenv';
-dotenv.config();
-
 import {Colors} from 'react-native/Libraries/NewAppScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
