@@ -283,8 +283,11 @@ const Registration = () => {
         style={{marginBottom: 25}}
       />
       <>
-        {isRegistering && <Loading message="Registering..." />}
-        {!isRegistering && (
+        {isRegistering ? (
+          <Button disabled mode="contained" icon="account">
+            Registering...
+          </Button>
+        ) : (
           <Button
             disabled={!username}
             mode="contained"
@@ -338,8 +341,15 @@ const Pairing = () => {
         onChangeText={setPair}
         style={{marginBottom: 25}}
       />
-      {isRequestingPair && <Loading message="Requesting pair..." />}
-      {!isRequestingPair && (
+      {isRequestingPair ? (
+        <Button
+          disabled
+          mode="contained"
+          icon="heart"
+          style={{marginBottom: 25}}>
+          Pairing...
+        </Button>
+      ) : (
         <Button
           disabled={!pair}
           mode="contained"
