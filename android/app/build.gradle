@@ -95,7 +95,7 @@ android {
 
     namespace "com.daisy"
     defaultConfig {
-        applicationId "com.daisy"
+        applicationId "com.mglavas.daisy"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
